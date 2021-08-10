@@ -4,18 +4,24 @@ from todo.models import Todo
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
+from django.http import JsonResponse
+from django.db import IntegrityError
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 
 @csrf_exempt
 def signup(request):
     if request.method == 'POST':
     
         try:
-            user = User.objects.create_user(request.POST['username'], password=request.POST['password1'])
+            data = JSONParser().parse(request)
+            user = User.objects.create_user(data['username'], password=data['password'])
             user.save()
-            login(request, user)
-            return redirect('currenttodos')
+            token = Token.objects.create(user=user)
+            # login(request, user)
+            return JsonResponse({'token' : str(token)}, status=201)
         except IntegrityError:
-            return render(request, 'todo/signupuser.html', {'form':UserCreationForm(), 'error':'That username has already been taken. Please choose a new username'})
+            return JsonResponse({'error' : 'That username has already been taken. Please choose a new username'}, status=400)
         
 
 
